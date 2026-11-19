@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.camera.core.ImageAnalysis
 
 /**
  * Full-screen camera preview bound to [analyzer]. Torch can be toggled via [torchEnabled].
