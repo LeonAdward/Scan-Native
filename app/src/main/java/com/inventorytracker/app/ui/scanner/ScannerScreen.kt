@@ -35,6 +35,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -66,6 +70,9 @@ fun ScannerScreen(
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var ocrMode by rememberSaveable { mutableStateOf(false) }
+    var recognizedText by remember { mutableStateOf("") }
     var hasCameraPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -94,6 +101,15 @@ fun ScannerScreen(
         BarcodeAnalyzer { result -> viewModel.onBarcodeDetected(result) }
     }
 
+    val textAnalyzer = remember {
+        TextOcrAnalyzer { recognizedText = it }
+    }
+    DisposableEffect(analyzer, textAnalyzer) {
+        onDispose {
+            analyzer.close()
+            textAnalyzer.close()
+        }
+    }
     LaunchedEffect(viewModel) {
         viewModel.navigationEvents.collect { event ->
             when (event) {
@@ -128,12 +144,43 @@ fun ScannerScreen(
         ) {
             if (hasCameraPermission) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    CameraPreview(
-                        analyzer = analyzer,
-                        torchEnabled = torchEnabled,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    key(ocrMode) {
+                        CameraPreview(
+                            analyzer = if (ocrMode) textAnalyzer else analyzer,
+                            torchEnabled = torchEnabled,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                     ScanReticle(modifier = Modifier.align(Alignment.Center))
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                            .fillMaxWidth().padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Button(onClick = { ocrMode = !ocrMode }) {
+                            Text(if (ocrMode) "条码扫描" else "文字 OCR")
+                        }
+                        if (ocrMode) {
+                            Surface(shape = RoundedCornerShape(12.dp)) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        recognizedText.ifBlank { "正在识别文字…" },
+                                        maxLines = 5
+                                    )
+                                    OutlinedButton(
+                                        enabled = recognizedText.isNotBlank(),
+                                        onClick = {
+                                            clipboard.setText(
+                                                AnnotatedString(recognizedText)
+                                            )
+                                        }
+                                    ) {
+                                        Text("复制文字")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
                 ManualEntry(

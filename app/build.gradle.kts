@@ -89,6 +89,7 @@ dependencies {
 
     // ML Kit barcode scanning
     implementation(libs.mlkit.barcode.scanning)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     // Hilt
     implementation(libs.hilt.android)

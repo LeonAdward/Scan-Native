@@ -19,14 +19,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.inventorytracker.app.scanner.BarcodeAnalyzer
+import androidx.camera.core.ImageAnalysis
 
 /**
  * Full-screen camera preview bound to [analyzer]. Torch can be toggled via [torchEnabled].
  */
 @Composable
 fun CameraPreview(
-    analyzer: BarcodeAnalyzer,
+    analyzer: ImageAnalysis.Analyzer,
     torchEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -68,7 +68,7 @@ fun CameraPreview(
         }
         cameraProviderFuture.addListener({ listener.accept(cameraProviderFuture.get()) }, executor)
         onDispose {
-            currentAnalyzer.close()
+            // Analyzer owned by ScannerScreen
             try {
                 cameraProviderFuture.get().unbindAll()
             } catch (_: Exception) {
